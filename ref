@@ -1,66 +1,37 @@
-# Uncomment if needed:
-# %pip install pandas numpy matplotlib seaborn scikit-learn
+dt_model = Pipeline(steps=[
+    ("preprocessor", preprocessor),
+    ("classifier", DecisionTreeClassifier(
+        criterion="gini",
+        max_depth=4,
+        min_samples_split=10,
+        min_samples_leaf=5,
+        random_state=RANDOM_STATE
+    ))
+])
 
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-import seaborn as sns
+dt_model.fit(X_train, y_train)
 
-from sklearn.model_selection import train_test_split
-from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.pipeline import Pipeline
-from sklearn.tree import DecisionTreeClassifier, plot_tree, export_text
-from sklearn.metrics import (
-    accuracy_score,
-    precision_score,
-    recall_score,
-    f1_score,
-    classification_report,
-    confusion_matrix,
-    ConfusionMatrixDisplay
-)
+print("Model training completed.")
+=================================================
+y_pred = dt_model.predict(X_test)
+y_probability = dt_model.predict_proba(X_test)
 
-RANDOM_STATE = 42
-==========================
-CSV_PATH = "loan_approval_decision_tree.csv"
+results = X_test.copy()
+results["actual"] = y_test
+results["predicted"] = y_pred
+results["prob_not_approved"] = y_probability[:, 0]
+results["prob_approved"] = y_probability[:, 1]
 
-df = pd.read_csv(CSV_PATH)
+display(results.head(10))
+=======================================================
+print(f"Accuracy : {accuracy_score(y_test, y_pred):.3f}")
+print(f"Precision: {precision_score(y_test, y_pred, zero_division=0):.3f}")
+print(f"Recall   : {recall_score(y_test, y_pred, zero_division=0):.3f}")
+print(f"F1-score : {f1_score(y_test, y_pred, zero_division=0):.3f}")
 
-print("Dataset shape:", df.shape)
-display(df.head())
-====================
-df.info()
-==============
-display(df.describe(include="all").T)
-============================
-print("Missing values per column:")
-display(df.isna().sum())
-
-print("\nTarget class counts:")
-display(df["loan_approved"].value_counts().rename(index={0: "Not approved", 1: "Approved"}))
-
-print("\nTarget class proportions:")
-display(df["loan_approved"].value_counts(normalize=True).rename(index={0: "Not approved", 1: "Approved"}).round(3))
-==========================
-X = df.drop(columns="loan_approved")
-y = df["loan_approved"]
-
-print("X shape:", X.shape)
-print("y shape:", y.shape)
-display(X.head())
-
-===============================
-categorical_features = ["previous_default"]
-numeric_features = [col for col in X.columns if col not in categorical_features]
-
-preprocessor = ColumnTransformer(
-    transformers=[
-        ("categorical", OneHotEncoder(handle_unknown="ignore"), categorical_features),
-        ("numeric", "passthrough", numeric_features)
-    ],
-    verbose_feature_names_out=False
-)
-
-
-===========================
+print("\nDetailed classification report:")
+print(classification_report(
+    y_test, y_pred,
+    target_names=["Not approved", "Approved"],
+    zero_division=0
+))
