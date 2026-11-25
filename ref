@@ -1,0 +1,55 @@
+import io
+import zipfile
+import urllib.request
+
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+from sklearn.model_selection import train_test_split
+from sklearn.pipeline import Pipeline
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import (
+    accuracy_score, confusion_matrix, classification_report,
+    ConfusionMatrixDisplay
+)
+
+pd.set_option("display.max_colwidth", 120)
+=============================================================================
+url = "https://archive.ics.uci.edu/static/public/228/sms+spam+collection.zip"
+
+with urllib.request.urlopen(url) as response:
+    archive_bytes = response.read()
+
+with zipfile.ZipFile(io.BytesIO(archive_bytes)) as z:
+    # The original file is tab-separated and has no header.
+    with z.open("SMSSpamCollection") as f:
+        df = pd.read_csv(
+            f,
+            sep="\\t",
+            header=None,
+            names=["label", "message"],
+            encoding="utf-8"
+        )
+
+# Save a normal comma-separated CSV for future use.
+df.to_csv("sms_spam.csv", index=False)
+
+print("Dataset shape:", df.shape)
+print("CSV saved as sms_spam.csv")
+df.head(10)
+===============================================================
+print(df.info())
+print("\\nMissing values:")
+print(df.isna().sum())
+print("\\nClass counts:")
+print(df["label"].value_counts())
+print("\\nClass percentages:")
+print(df["label"].value_counts(normalize=True).mul(100).round(2))
+=====================
+ax = df["label"].value_counts().plot(kind="bar", rot=0)
+ax.set_title("Number of Ham and Spam Messages")
+ax.set_xlabel("SMS category")
+ax.set_ylabel("Number of messages")
+plt.show()
