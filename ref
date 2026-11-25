@@ -1,3 +1,15 @@
+y_pred = dt_model.predict(X_test)
+y_probability = dt_model.predict_proba(X_test)
+
+results = X_test.copy()
+results["actual"] = y_test
+results["predicted"] = y_pred
+results["prob_not_approved"] = y_probability[:, 0]
+results["prob_approved"] = y_probability[:, 1]
+
+display(results.head(10))
+
+========================
 dt_model = Pipeline(steps=[
     ("preprocessor", preprocessor),
     ("classifier", DecisionTreeClassifier(
