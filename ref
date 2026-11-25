@@ -1,55 +1,66 @@
-import io
-import zipfile
-import urllib.request
+# Uncomment if needed:
+# %pip install pandas numpy matplotlib seaborn scikit-learn
 
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 
 from sklearn.model_selection import train_test_split
+from sklearn.compose import ColumnTransformer
+from sklearn.preprocessing import OneHotEncoder
 from sklearn.pipeline import Pipeline
-from sklearn.feature_extraction.text import CountVectorizer
-from sklearn.naive_bayes import MultinomialNB
+from sklearn.tree import DecisionTreeClassifier, plot_tree, export_text
 from sklearn.metrics import (
-    accuracy_score, confusion_matrix, classification_report,
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    classification_report,
+    confusion_matrix,
     ConfusionMatrixDisplay
 )
 
-pd.set_option("display.max_colwidth", 120)
-=============================================================================
-url = "https://archive.ics.uci.edu/static/public/228/sms+spam+collection.zip"
+RANDOM_STATE = 42
+==========================
+CSV_PATH = "loan_approval_decision_tree.csv"
 
-with urllib.request.urlopen(url) as response:
-    archive_bytes = response.read()
-
-with zipfile.ZipFile(io.BytesIO(archive_bytes)) as z:
-    # The original file is tab-separated and has no header.
-    with z.open("SMSSpamCollection") as f:
-        df = pd.read_csv(
-            f,
-            sep="\\t",
-            header=None,
-            names=["label", "message"],
-            encoding="utf-8"
-        )
-
-# Save a normal comma-separated CSV for future use.
-df.to_csv("sms_spam.csv", index=False)
+df = pd.read_csv(CSV_PATH)
 
 print("Dataset shape:", df.shape)
-print("CSV saved as sms_spam.csv")
-df.head(10)
-===============================================================
-print(df.info())
-print("\\nMissing values:")
-print(df.isna().sum())
-print("\\nClass counts:")
-print(df["label"].value_counts())
-print("\\nClass percentages:")
-print(df["label"].value_counts(normalize=True).mul(100).round(2))
-=====================
-ax = df["label"].value_counts().plot(kind="bar", rot=0)
-ax.set_title("Number of Ham and Spam Messages")
-ax.set_xlabel("SMS category")
-ax.set_ylabel("Number of messages")
-plt.show()
+display(df.head())
+====================
+df.info()
+==============
+display(df.describe(include="all").T)
+============================
+print("Missing values per column:")
+display(df.isna().sum())
+
+print("\nTarget class counts:")
+display(df["loan_approved"].value_counts().rename(index={0: "Not approved", 1: "Approved"}))
+
+print("\nTarget class proportions:")
+display(df["loan_approved"].value_counts(normalize=True).rename(index={0: "Not approved", 1: "Approved"}).round(3))
+==========================
+X = df.drop(columns="loan_approved")
+y = df["loan_approved"]
+
+print("X shape:", X.shape)
+print("y shape:", y.shape)
+display(X.head())
+
+===============================
+categorical_features = ["previous_default"]
+numeric_features = [col for col in X.columns if col not in categorical_features]
+
+preprocessor = ColumnTransformer(
+    transformers=[
+        ("categorical", OneHotEncoder(handle_unknown="ignore"), categorical_features),
+        ("numeric", "passthrough", numeric_features)
+    ],
+    verbose_feature_names_out=False
+)
+
+
+===========================
